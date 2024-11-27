@@ -3,6 +3,7 @@ import numpy as np
 import os
 import tensorflow as tf
 import logging
+import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -40,8 +41,13 @@ class WeatherPipeline:
         self.output_days = 5
         
         try:
-            model_path = os.path.join(os.getcwd(), 'final_2_advanced_weather_prediction_model.h5')
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction_model.h5')
             logger.info(f"Attempting to load model from: {model_path}")
+            
+            # Check if the model file exists
+            if not os.path.exists(model_path):
+                logger.error(f"Model file does not exist at path: {model_path}")
+                raise FileNotFoundError(f"Model file not found at path: {model_path}")
             
             # Load model without compilation
             self.model = tf.keras.models.load_model(model_path, compile=False)
@@ -57,6 +63,7 @@ class WeatherPipeline:
             
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")
+            logger.error("Stack trace: " + traceback.format_exc())  # Add traceback for better debugging
             raise Exception(f"Failed to load model: {str(e)}")
         
         self.scaler = WeatherScaler()
@@ -122,18 +129,20 @@ def predict():
         input_data = request.json.get('inputs')
         if not input_data:
             return jsonify({'error': 'No input data provided. Expected JSON: {"inputs": [...]}'}), 400
-        
         logger.info(f"Received input data: {input_data}")
+        if len(input_data) != 4:
+            logger.error("Incorrect number of features in input data.")
+            return jsonify({'error': 'Input data must contain 4 features (temperature, humidity, wind_speed, precipitation).'}), 400
+
         predictions = pipeline.predict(input_data)
-        response = {
-            'predictions': predictions
-        }
+        response = {'predictions': predictions}
         return jsonify(response)
+    
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
+        logger.error("Stack trace: " + traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
-    
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
