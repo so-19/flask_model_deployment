@@ -1,7 +1,7 @@
+import pickle
 from flask import Flask, request, jsonify
 import numpy as np
 import os
-import tensorflow as tf
 import logging
 import traceback
 
@@ -41,7 +41,7 @@ class WeatherPipeline:
         self.output_days = 5
         
         try:
-            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction_model.h5')
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_weather_model.pkl')
             logger.info(f"Attempting to load model from: {model_path}")
             
             # Check if the model file exists
@@ -49,15 +49,9 @@ class WeatherPipeline:
                 logger.error(f"Model file does not exist at path: {model_path}")
                 raise FileNotFoundError(f"Model file not found at path: {model_path}")
             
-            # Load model without compilation
-            self.model = tf.keras.models.load_model(model_path, compile=False)
-            
-            # Recompile the model with basic configuration
-            self.model.compile(
-                optimizer='adam',
-                loss='mse',
-                metrics=['mae']
-            )
+            # Load the model from the .pkl file
+            with open(model_path, 'rb') as model_file:
+                self.model = pickle.load(model_file)
             
             logger.info("Model loaded successfully!")
             
@@ -78,7 +72,7 @@ class WeatherPipeline:
     
     def predict(self, input_data):
         model_input = self.prepare_input(input_data)
-        scaled_predictions = self.model.predict(model_input, verbose=0)  # Added verbose=0 to reduce output
+        scaled_predictions = self.model.predict(model_input)  # Make prediction with the loaded model
         scaled_predictions = scaled_predictions.reshape(self.output_days, self.num_features)
         
         original_predictions = np.array([
@@ -129,8 +123,12 @@ def predict():
         input_data = request.json.get('inputs')
         if not input_data:
             return jsonify({'error': 'No input data provided. Expected JSON: {"inputs": [...]}'}), 400
+
+        # Debug log for the received input
         logger.info(f"Received input data: {input_data}")
-        if len(input_data) != 4:
+
+        # Additional validation for input length
+        if len(input_data) != 4:  # Ensure input has 4 features
             logger.error("Incorrect number of features in input data.")
             return jsonify({'error': 'Input data must contain 4 features (temperature, humidity, wind_speed, precipitation).'}), 400
 
@@ -140,9 +138,9 @@ def predict():
     
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
-        logger.error("Stack trace: " + traceback.format_exc())
+        logger.error("Stack trace: " + traceback.format_exc())  # Detailed traceback for prediction error
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5000))  # Default to 5000 if no PORT environment variable
     app.run(debug=True, host='0.0.0.0', port=port)
