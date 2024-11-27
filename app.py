@@ -41,7 +41,7 @@ class WeatherPipeline:
         self.output_days = 5
         
         try:
-            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_weather_model.pkl')
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final4_weather_prediction_model.pkl')
             logger.info(f"Attempting to load model from: {model_path}")
             
             # Check if the model file exists
