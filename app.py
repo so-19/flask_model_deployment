@@ -41,12 +41,14 @@ class WeatherPipeline:
         self.output_days = 5
         
         try:
-            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction_model.h5')
+            # Use absolute path to avoid issues with current working directory
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction__model.h5')
             logger.info(f"Attempting to load model from: {model_path}")
             
             if not os.path.exists(model_path):
                 raise FileNotFoundError(f"Model file not found at path: {model_path}")
-
+            
+            # Load the model from the .h5 file using TensorFlow
             self.model = tf.keras.models.load_model(model_path)
             logger.info("Model loaded successfully!")
             
@@ -55,7 +57,7 @@ class WeatherPipeline:
             raise Exception(f"File not found: {str(fnf_error)}")
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")
-            logger.error("Stack trace: " + traceback.format_exc())
+            logger.error("Stack trace: " + traceback.format_exc())  # Detailed stack trace for better debugging
             raise Exception(f"Failed to load model: {str(e)}")
         
         self.scaler = WeatherScaler()
@@ -70,7 +72,7 @@ class WeatherPipeline:
     
     def predict(self, input_data):
         model_input = self.prepare_input(input_data)
-        scaled_predictions = self.model.predict(model_input)
+        scaled_predictions = self.model.predict(model_input)  # Make prediction with the loaded model
         scaled_predictions = scaled_predictions.reshape(self.output_days, self.num_features)
         
         original_predictions = np.array([
