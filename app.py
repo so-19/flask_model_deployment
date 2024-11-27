@@ -42,7 +42,7 @@ class WeatherPipeline:
         
         try:
             # Use absolute path to avoid issues with current working directory
-            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction__model.h5')
+            model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'final_2_advanced_weather_prediction_model.h5')
             logger.info(f"Attempting to load model from: {model_path}")
             
             if not os.path.exists(model_path):
